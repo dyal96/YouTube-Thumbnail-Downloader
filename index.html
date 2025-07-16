@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Thumbnail Downloader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    input {
+      width: 60%;
+      padding: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #e62117;
+      color: white;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .thumbnails {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+
+    .thumb {
+      background: #222;
+      padding: 1rem;
+      border-radius: 10px;
+    }
+
+    .thumb img {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+
+    .thumb button {
+      margin-top: 10px;
+      background: #0af;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎬 YouTube Thumbnail Downloader</h1>
+  <input type="text" id="urlInput" placeholder="Paste YouTube URL or Video ID">
+  <br>
+  <button onclick="generateThumbnails()">Get Thumbnails</button>
+
+  <div class="thumbnails" id="thumbContainer"></div>
+
+  <script>
+    function extractVideoID(url) {
+      const regex = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([^&?\/\s]+)/;
+      const match = url.match(regex);
+      return match ? match[1] : url;
+    }
+
+    async function getVideoTitle(videoId) {
+      try {
+        const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+        const data = await res.json();
+        return data.title.replace(/[\/\\:*?"<>|]/g, ''); // Sanitize for filenames
+      } catch {
+        return videoId;
+      }
+    }
+
+    async function generateThumbnails() {
+      const input = document.getElementById('urlInput').value.trim();
+      const videoId = extractVideoID(input);
+      const title = await getVideoTitle(videoId);
+      const qualities = ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault', 'default'];
+
+      const container = document.getElementById('thumbContainer');
+      container.innerHTML = '';
+
+      qualities.forEach(q => {
+        const url = `https://img.youtube.com/vi/${videoId}/${q}.jpg`;
+
+        const thumbDiv = document.createElement('div');
+        thumbDiv.className = 'thumb';
+
+        thumbDiv.innerHTML = `
+          <img src="${url}" alt="${q}">
+          <br>
+          <button onclick="downloadImage('${url}', '${title} - ${q}.jpg')">⬇️ Download ${q}</button>
+        `;
+
+        container.appendChild(thumbDiv);
+      });
+    }
+
+    function downloadImage(url, filename) {
+      fetch(url)
+        .then(response => response.blob())
+        .then(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = filename;
+          a.click();
+        });
+    }
+  </script>
+</body>
+</html>
